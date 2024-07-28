@@ -4,9 +4,7 @@ import time
 import click
 import torch
 from reinvent.runmodes import samplers, create_adapter
-from reinvent.runmodes.dtos import ChemistryHelpers
-from reinvent.chemistry import TransformationTokens, Conversions
-from reinvent.chemistry.library_design import BondMaker, AttachmentPoints
+from reinvent.chemistry import conversions
 from reinvent.runmodes.samplers.run_sampling import filter_valid
 
 
@@ -25,16 +23,11 @@ class Mol2MolSimilaritySampler:
 
     def __init__(self):
         self.batch_size = 100
-        self.chemistry = ChemistryHelpers(
-            Conversions(), BondMaker(), AttachmentPoints()
-        )
 
         # Constants
-        temperature = 1.0
         unique_sequences = True
         isomeric = True
         sample_strategy = "beamsearch"
-        tokens = TransformationTokens()
         randomize_smiles = (
             False  # For Mol2Mol reinvent 4 sets randomize_smiles to False.
         )
@@ -50,9 +43,6 @@ class Mol2MolSimilaritySampler:
             isomeric=isomeric,
             randomize_smiles=randomize_smiles,
             unique_sequences=unique_sequences,
-            chemistry=self.chemistry,
-            temperature=temperature,
-            tokens=tokens,
         )
 
     def generate(
@@ -83,9 +73,7 @@ class Mol2MolSimilaritySampler:
                 )
 
         # compute Tanimoto similarity between generated compounds and input compounds; return largest
-        _, valid_idxs = self.chemistry.conversions.smiles_to_mols_and_indices(
-            sampled.items2
-        )
+        _, valid_idxs = conversions.smiles_to_mols_and_indices(sampled.items2)
         valid_scores = self.sampler.calculate_tanimoto(input_smiles, sampled.items2)
         scores = [-1] * len(sampled.items2)
         for i, j in enumerate(valid_idxs):
